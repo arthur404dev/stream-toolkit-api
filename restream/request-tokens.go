@@ -23,6 +23,8 @@ type TokenResponse struct {
 }
 
 func requestTokens(c string) (TokenResponse, error) {
+	tr := TokenResponse{}
+
 	endpoint := os.Getenv("RESTREAM_TOKEN_ENDPOINT")
 	redirect_uri := os.Getenv("RESTREAM_REDIRECT_URI")
 	client_id := os.Getenv("RESTREAM_CLIENT_ID")
@@ -36,22 +38,21 @@ func requestTokens(c string) (TokenResponse, error) {
 	client := &http.Client{}
 	r, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("http.NewRequest() error=%+v\n", err)
+		return tr, err
 	}
+
 	r.SetBasicAuth(client_id, secret)
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
 	res, err := client.Do(r)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("http.Client.Do() error=%+v\n", err)
+		return tr, err
 	}
 
 	defer res.Body.Close()
-
-	var tr TokenResponse
-
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		log.Fatal(err)
+		log.Fatalf("json.NewDecoder().Decode() error=%+v\n", err)
 		return tr, err
 	}
 

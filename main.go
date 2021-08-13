@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/arthur404dev/404-api/restream"
 	"github.com/joho/godotenv"
@@ -13,14 +14,15 @@ func statusPage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "API is online and serving")
 }
 
-func setupRoutes() {
+func setupRoutes(port string) {
 	http.HandleFunc("/", statusPage)
 	http.HandleFunc("/restream/exchange", restream.ExchangeTokens)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("API Listening on port:%+v and serving...", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func main() {
 	godotenv.Load()
-	log.Println("404 api running")
-	setupRoutes()
+	p := os.Getenv("PORT")
+	setupRoutes(p)
 }
