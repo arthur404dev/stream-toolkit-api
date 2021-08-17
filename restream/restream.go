@@ -2,7 +2,10 @@ package restream
 
 import (
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
+	"time"
 )
 
 type ExchangeBody struct {
@@ -25,21 +28,54 @@ func ExchangeTokens(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		log.Printf("Received Code=%+v starting token exchange\n", e.Code)
 
-		tokens, err := requestTokens(e.Code)
+		tokens, err := requestTokens(e.Code, "authorization_code")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
+		if tokens.AccessToken == "" {
+			http.Error(w, "No Access token received", http.StatusNoContent)
+			return
+		}
+		log.Printf("Tokens Received from provider using code=%+v, starting store\n", e.Code)
 		w.WriteHeader(http.StatusCreated)
-		res, err := StoreTokens(&tokens)
+		res, err := storeTokens(&tokens)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotModified)
 			return
 		}
-		
+		log.Printf("Tokens Stored using code=%+v exiting\n", e.Code)
 		msg := ResponseData{res}
 		json.NewEncoder(w).Encode(msg)
 	}
+}
+
+func RefreshTokens() error {
+	tokens, err := getTokens()
+	if err != nil {
+		log.Fatalf("RefreshTokens.getTokens error=%+v\n", err)
+		return err
+	}
+	t, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.RefreshTokenExpiresAt)
+	if err != nil {
+		log.Fatalf("RefreshTokens.time.Parse error=%+v\n", err)
+		return err
+	}
+	if t.Sub(time.Now()) <= 0*time.Second {
+		log.Fatalf("Refresh Token is expired")
+		return errors.New("The received refresh token is already expired")
+	}
+	tr, err := requestTokens(tokens.RefreshToken, "refresh_token")
+	if err != nil {
+		log.Fatalf("RefreshTokens.requestTokens error=%+v\n", err)
+		return err
+	}
+	_, err = storeTokens(&tr)
+	if err != nil {
+		log.Fatalf("RefreshTokens.storeTokens error=%+v\n", err)
+		return err
+	}
+	return nil
 }

@@ -22,7 +22,7 @@ type TokenResponse struct {
 	TokenType                string   `json:"tokenType"`
 }
 
-func requestTokens(c string) (TokenResponse, error) {
+func requestTokens(payload string, grant_type string) (TokenResponse, error) {
 	tr := TokenResponse{}
 
 	endpoint := os.Getenv("RESTREAM_TOKEN_ENDPOINT")
@@ -31,10 +31,15 @@ func requestTokens(c string) (TokenResponse, error) {
 	secret := os.Getenv("RESTREAM_SECRET")
 
 	data := url.Values{}
-	data.Set("grant_type", "authorization_code")
-	data.Set("redirect_uri", redirect_uri)
-	data.Set("code", c)
-
+	if grant_type == "authorization_code" {
+		data.Set("grant_type", "authorization_code")
+		data.Set("redirect_uri", redirect_uri)
+		data.Set("code", payload)
+	}
+	if grant_type == "refresh_token" {
+		data.Set("grant_type", "refresh_token")
+		data.Set("refresh_token", payload)
+	}
 	client := &http.Client{}
 	r, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
