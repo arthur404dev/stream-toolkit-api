@@ -54,7 +54,10 @@ func requestTokens(payload string, grant_type string) (TokenResponse, error) {
 		log.Fatalf("http.Client.Do() error=%+v\n", err)
 		return tr, err
 	}
-
+	if res.StatusCode == http.StatusBadRequest {
+		log.Fatalf("Request rejected")
+		return tr, err
+	}
 	defer res.Body.Close()
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
 		log.Fatalf("json.NewDecoder().Decode() error=%+v\n", err)

@@ -58,12 +58,21 @@ func RefreshTokens() error {
 		log.Fatalf("RefreshTokens.getTokens error=%+v\n", err)
 		return err
 	}
-	t, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.RefreshTokenExpiresAt)
+	ert, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.RefreshTokenExpiresAt)
 	if err != nil {
-		log.Fatalf("RefreshTokens.time.Parse error=%+v\n", err)
+		log.Fatalf("RefreshTokens.time.Parse Refresh Token error=%+v\n", err)
 		return err
 	}
-	if t.Sub(time.Now()) <= 0*time.Second {
+	eat, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.AccessTokenExpiresAt)
+	if err != nil {
+		log.Fatalf("RefreshTokens.time.Parse Access Token error=%+v\n", err)
+		return err
+	}
+	if eat.Sub(time.Now()) > 0*time.Second {
+		log.Printf("Access Token is still valid")
+		return nil
+	}
+	if ert.Sub(time.Now()) <= 0*time.Second {
 		log.Fatalf("Refresh Token is expired")
 		return errors.New("The received refresh token is already expired")
 	}
@@ -72,10 +81,28 @@ func RefreshTokens() error {
 		log.Fatalf("RefreshTokens.requestTokens error=%+v\n", err)
 		return err
 	}
+	log.Printf("refresh got:%+v\n", tr)
 	_, err = storeTokens(&tr)
 	if err != nil {
 		log.Fatalf("RefreshTokens.storeTokens error=%+v\n", err)
 		return err
 	}
 	return nil
+}
+
+func GetAccessToken() (string, error) {
+	if err := RefreshTokens(); err != nil {
+		log.Fatalf("GetAccessToken.RefreshTokens error=%+v\n", err)
+		return "", err
+	}
+	tokens, err := getTokens()
+	if err != nil {
+		log.Fatalf("GetAccessToken.getTokens error=%+v\n", err)
+		return "", err
+	}
+	if tokens.AccessToken == "" {
+		log.Fatalf("GetAccessToken.AccessToken error= Access Token is empty")
+		return "", errors.New("The Access Token received is blank")
+	}
+	return tokens.AccessToken, nil
 }
