@@ -33,9 +33,9 @@ func init() {
 }
 
 func main() {
-	runSockets()
-	// p := os.Getenv("PORT")
-	// setupServer(p)
+	// runSockets()
+	p := os.Getenv("PORT")
+	setupServer(p)
 }
 
 func setupServer(port string) {
