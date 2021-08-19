@@ -1,108 +1,111 @@
 package restream
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"time"
-)
 
-type ExchangeBody struct {
-	Code string `json:"code"`
-}
+	"github.com/labstack/echo/v4"
+	log "github.com/sirupsen/logrus"
+)
 
 type ResponseData struct {
 	Message string `json:"msg"`
 }
 
-func ExchangeTokens(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Content-Type", "application/json")
+func ExchangeTokens(c echo.Context) error {
+	code := c.FormValue("code")
+	logger := log.WithFields(log.Fields{"source": "restream.ExchangeTokens()", "code": code})
+	logger.Debugln("token exchange started")
 
-	if r.Method == http.MethodPost {
-		e := ExchangeBody{}
+	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+	c.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	c.Response().Header().Set("Content-Type", "application/json")
 
-		if err := json.NewDecoder(r.Body).Decode(&e); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		log.Printf("Received Code=%+v starting token exchange\n", e.Code)
-
-		tokens, err := requestTokens(e.Code, "authorization_code")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if tokens.AccessToken == "" {
-			http.Error(w, "No Access token received", http.StatusNoContent)
-			return
-		}
-		log.Printf("Tokens Received from provider using code=%+v, starting store\n", e.Code)
-		w.WriteHeader(http.StatusCreated)
-		res, err := storeTokens(&tokens)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotModified)
-			return
-		}
-		log.Printf("Tokens Stored using code=%+v exiting\n", e.Code)
-		msg := ResponseData{res}
-		json.NewEncoder(w).Encode(msg)
+	tokens, err := requestTokens(code, "authorization_code")
+	if err != nil {
+		logger.Errorln(err)
+		c.Error(err)
+		return err
 	}
+	log.WithField("tokens", tokens).Infoln("received tokens from code exchange")
+
+	if tokens.AccessToken == "" {
+		logger.Errorln("empty access token received")
+		c.String(http.StatusInternalServerError, "no access token received form exchange.")
+		return err
+	}
+
+	c.Response().WriteHeader(http.StatusCreated)
+	logger.Debugln("started tokens store process")
+	res, err := storeTokens(&tokens)
+	if err != nil {
+		logger.Errorln(err)
+		c.Error(err)
+		return err
+	}
+	logger.Debugln("tokens stored successfully")
+	msg := ResponseData{res}
+	logger.Debugln("token exchange finished")
+	return c.JSON(http.StatusOK, msg)
 }
 
 func RefreshTokens() error {
+	logger := log.WithFields(log.Fields{"source": "restream.RefreshTokens()"})
+	logger.Debugln("token refresh started")
 	tokens, err := getTokens()
 	if err != nil {
-		log.Fatalf("RefreshTokens.getTokens error=%+v\n", err)
+		logger.Errorln(err)
 		return err
 	}
+	log.WithField("tokens", tokens).Infoln("received tokens from database")
 	ert, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.RefreshTokenExpiresAt)
 	if err != nil {
-		log.Fatalf("RefreshTokens.time.Parse Refresh Token error=%+v\n", err)
+		logger.Errorln(err)
 		return err
 	}
+	log.WithField("refreshToken", tokens.RefreshTokenExpiresAt).Debugln("refresh token is still valid")
 	eat, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", tokens.AccessTokenExpiresAt)
 	if err != nil {
-		log.Fatalf("RefreshTokens.time.Parse Access Token error=%+v\n", err)
+		logger.Errorln(err)
 		return err
 	}
 	if eat.Sub(time.Now()) > 0*time.Second {
-		log.Printf("Access Token is still valid")
+		logger.Printf("Access Token is still valid")
 		return nil
 	}
 	if ert.Sub(time.Now()) <= 0*time.Second {
-		log.Fatalf("Refresh Token is expired")
+		logger.Fatalf("Refresh Token is expired")
 		return errors.New("The received refresh token is already expired")
 	}
+	logger.Printf("2 - Entering requestTokens with refreshToken=%+v\n", tokens.RefreshToken)
 	tr, err := requestTokens(tokens.RefreshToken, "refresh_token")
 	if err != nil {
-		log.Fatalf("RefreshTokens.requestTokens error=%+v\n", err)
+		logger.Fatalf("RefreshTokens.requestTokens error=%+v\n", err)
 		return err
 	}
-	log.Printf("refresh got:%+v\n", tr)
+	logger.Printf("refresh got:%+v\n", tr)
 	_, err = storeTokens(&tr)
 	if err != nil {
-		log.Fatalf("RefreshTokens.storeTokens error=%+v\n", err)
+		logger.Fatalf("RefreshTokens.storeTokens error=%+v\n", err)
 		return err
 	}
+	logger.Debugln("token refresh finished")
 	return nil
 }
 
 func GetAccessToken() (string, error) {
-	if err := RefreshTokens(); err != nil {
-		log.Fatalf("GetAccessToken.RefreshTokens error=%+v\n", err)
-		return "", err
-	}
+	logger := log.WithFields(log.Fields{"source": "restream.GetAccessToken()"})
+	logger.Debugln("token get started")
 	tokens, err := getTokens()
 	if err != nil {
-		log.Fatalf("GetAccessToken.getTokens error=%+v\n", err)
+		logger.Errorln(err)
 		return "", err
 	}
 	if tokens.AccessToken == "" {
-		log.Fatalf("GetAccessToken.AccessToken error= Access Token is empty")
+		logger.Errorln("received access token is empty")
 		return "", errors.New("The Access Token received is blank")
 	}
+	logger.Debugln("token get finished")
 	return tokens.AccessToken, nil
 }

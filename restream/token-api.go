@@ -2,7 +2,9 @@ package restream
 
 import (
 	"encoding/json"
-	"log"
+
+	log "github.com/sirupsen/logrus"
+
 	"net/http"
 	"net/url"
 	"os"
@@ -23,8 +25,9 @@ type TokenResponse struct {
 }
 
 func requestTokens(payload string, grant_type string) (TokenResponse, error) {
+	logger := log.WithFields(log.Fields{"source": "restream.requestTokens()", "payload": payload, "type": grant_type})
+	logger.Debugln("token request started")
 	tr := TokenResponse{}
-
 	endpoint := os.Getenv("RESTREAM_TOKEN_ENDPOINT")
 	redirect_uri := os.Getenv("RESTREAM_REDIRECT_URI")
 	client_id := os.Getenv("RESTREAM_CLIENT_ID")
@@ -41,6 +44,7 @@ func requestTokens(payload string, grant_type string) (TokenResponse, error) {
 		data.Set("refresh_token", payload)
 	}
 	client := &http.Client{}
+	logger.WithFields(log.Fields{"method": http.MethodPost, "endpoint": endpoint, "body": data.Encode()}).Infoln("started request")
 	r, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
 		log.Fatalf("http.NewRequest() error=%+v\n", err)
@@ -51,18 +55,19 @@ func requestTokens(payload string, grant_type string) (TokenResponse, error) {
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	res, err := client.Do(r)
 	if err != nil {
-		log.Fatalf("http.Client.Do() error=%+v\n", err)
+		logger.Errorln(err)
 		return tr, err
 	}
 	if res.StatusCode == http.StatusBadRequest {
-		log.Fatalf("Request rejected")
+		logger.WithFields(log.Fields{"status-code": res.StatusCode, "body": res.Body, "header": res.Header}).Errorln("request rejected")
 		return tr, err
 	}
 	defer res.Body.Close()
+	logger.Debugln("started decode of res.body")
 	if err := json.NewDecoder(res.Body).Decode(&tr); err != nil {
-		log.Fatalf("json.NewDecoder().Decode() error=%+v\n", err)
+		logger.Errorln(err)
 		return tr, err
 	}
-
+	logger.Debugln("token request finished")
 	return tr, nil
 }
