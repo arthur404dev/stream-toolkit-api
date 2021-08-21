@@ -1,14 +1,19 @@
 package websocket
 
 import (
-	"encoding/json"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 
 	"net/http"
 	"time"
 
+	"github.com/arthur404dev/404-api/message"
 	"github.com/gorilla/websocket"
+)
+
+const (
+
 )
 
 var upgrader = websocket.Upgrader{
@@ -31,25 +36,39 @@ func Handler(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 
 }
 
-func Writer(conn *websocket.Conn) {
+func Writer(conn *websocket.Conn, source *chan []byte) {
 	logger := log.WithFields(log.Fields{"source": "websocket.Writer()", "local-network": conn.LocalAddr().String()})
 	logger.Debugln("websocket writer started")
+
+	logger.Debugln("create ticker")
+	ticker := time.NewTicker(5 * time.Second)
+	defer func() {
+		ticker.Stop()
+		conn.Close()
+	}()
+
 	for {
-		logger.Debugln("create ticker")
-		ticker := time.NewTicker(time.Second)
-
-		for t := range ticker.C {
-			logger.WithField("t", t).Traceln("tick")
-			jsonString, err := json.Marshal(`{"message":"hey from the api"}`)
-			if err != nil {
-				logger.Errorln(err)
+		select {
+		case rawMsg := <-*source:
+			if rawMsg == nil {
+				os.Exit(1)
 			}
-
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonString)); err != nil {
+			msg, err := message.Parse(rawMsg)
+			if err != nil {
 				logger.Errorln(err)
 				return
 			}
-			logger.WithField("message", jsonString).Debugln("wrote message")
+			conn.WriteJSON(msg)
+
+		case t := <-ticker.C:
+			logger.Infoln("Heartbeat on %+v", t)
+			hb := message.Message{
+				Action:    "heartbeat",
+				Timestamp: int(time.Now().Unix()),
+			}
+			if err := conn.WriteJSON(hb); err != nil {
+				return
+			}
 		}
 	}
 }
