@@ -9,7 +9,7 @@ import (
 )
 
 func consume(url string, tc *chan []byte, quit *chan bool) {
-	logger := log.WithFields(log.Fields{"source": "websocket.Connect()", "url": url, "target-channel": tc})
+	logger := log.WithFields(log.Fields{"source": "websocket.consume()", "url": url})
 	logger.Debugln("websocket connection started")
 	accessToken, err := restream.GetAccessToken()
 	if err != nil {
@@ -26,16 +26,16 @@ func consume(url string, tc *chan []byte, quit *chan bool) {
 	}
 	defer c.Close()
 	done := make(chan struct{})
-	logger.Debugln("shipped OnMessage goroutine")
+	logger.Debugln("shipped onmessage routine")
 	go func() {
 		defer close(done)
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				logger.WithField("error", err).Error("exiting reader go routine...")
+				logger.Errorln(err)
 				return
 			}
-			logger.WithField("message", string(message)).Debugln("send message to target channel")
+			logger.WithField("message", string(message)).Debugln("message received")
 			*tc <- message
 		}
 	}()

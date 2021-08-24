@@ -7,7 +7,7 @@ type RawMessage struct {
 type Message struct {
 	Action    string      `json:"action"`
 	Payload   ChatPayload `json:"payload"`
-	Stats     Stats       `json:"status"`
+	Stats     Stats       `json:"stats"`
 	Timestamp int         `json:"timestamp"`
 	Type      string      `json:"type"`
 }

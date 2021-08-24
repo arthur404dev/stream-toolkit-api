@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	writeWait = 10 * time.Second
-	pongWait = 60 * time.Second
-	pingPeriod = (pongWait * 9) / 10
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
 )
 
@@ -29,11 +29,13 @@ type Client struct {
 }
 
 func (c *Client) readPump() {
-
+	logger := log.WithFields(log.Fields{"source": "client.readPump()", "client-address": c.conn.LocalAddr().String()})
+	logger.Debugln("read pump started")
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
+	logger.Debugln("setting reader options")
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -41,16 +43,17 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				logger.Errorln(err)
 			}
 			break
 		}
-		log.Debugln("received message from client", string(message))
+		logger.WithField("message", message).Debugln("received message from client")
 	}
 }
 
 func (c *Client) writePump() {
-	logger := log.WithFields(log.Fields{"source": "c.writePump()", "client-address": c.conn.LocalAddr().String()})
+	logger := log.WithFields(log.Fields{"source": "client.writePump()", "client-address": c.conn.LocalAddr().String()})
+	logger.Debugln("write pump started")
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()

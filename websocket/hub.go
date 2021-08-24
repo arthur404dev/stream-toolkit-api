@@ -27,14 +27,14 @@ func NewHub() *Hub {
 
 func (h *Hub) Run() {
 	logger := log.WithFields(log.Fields{"source": "Hub.Run()", "hub": h})
-	logger.Infoln()
+	logger.Debugln("hub service started")
 	urls := strings.Split(os.Getenv("SOCKET_ENDPOINTS"), ",")
 	quit := make(chan bool)
-
+	logger.Debugln("hub watcher started")
 	for {
 		select {
 		case client := <-h.register:
-			logger.Debugln("registering client")
+			logger.WithField("client-ip", client.ip).Debugln("registering client")
 			if len(h.clients) == 0 {
 				logger.Warnln("no clients found, launching consumers")
 				for _, url := range urls {
@@ -43,6 +43,7 @@ func (h *Hub) Run() {
 			}
 			h.clients[client] = true
 			h.ips[client.ip] = true
+			logger.WithField("client-ip", client.ip).Debugln("client registered")
 		case client := <-h.unregister:
 			logger.Debugln("unregistering client")
 			if _, ok := h.clients[client]; ok {
@@ -57,6 +58,7 @@ func (h *Hub) Run() {
 				}
 			}
 		case message := <-h.broadcast:
+			logger.WithField("message", string(message)).Debugln("broadcasting message")
 			for client := range h.clients {
 				select {
 				case client.send <- message:
