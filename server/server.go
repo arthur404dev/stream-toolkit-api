@@ -7,20 +7,22 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/arthur404dev/404-api/restream"
+	"github.com/arthur404dev/404-api/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func Start(port string) {
+func Start(port string, hub *websocket.Hub) {
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodConnect, http.MethodPost},
 	}))
 	e.Use(loggingMiddleware)
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(1)))
 
 	e.GET("/", statusPage)
-	e.GET("/ws", liveChat)
+	e.GET("/ws", func(c echo.Context) error { return websocket.ServeWs(hub, c) })
 	e.POST("/restream/exchange", restream.ExchangeTokens)
 
 	log.WithField("port", port).Info("api is listening and serving...")

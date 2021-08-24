@@ -109,3 +109,23 @@ func GetAccessToken() (string, error) {
 	logger.Debugln("token get finished")
 	return tokens.AccessToken, nil
 }
+
+func Refresher() {
+	logger := log.WithFields(log.Fields{"source": "restream.Refresher()"})
+	logger.Infoln("refresher started...")
+	if err := RefreshTokens(); err != nil {
+		logger.Error(err)
+		return
+	}
+	ticker := time.NewTicker(50 * time.Minute)
+	for {
+		select {
+		case <-ticker.C:
+			logger.Infoln("refresher triggering automatic refresh...")
+			if err := RefreshTokens(); err != nil {
+				logger.Error(err)
+				return
+			}
+		}
+	}
+}

@@ -1,26 +1,31 @@
 package websocket
 
 import (
-	"os"
+	"net/http"
 
+	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/arthur404dev/404-api/restream"
 )
 
-func Start(dumpChannel *chan []byte) error {
-	logger := log.WithFields(log.Fields{"source": "websocket.Start()", "dumpChannel": dumpChannel})
-
-	if err := restream.RefreshTokens(); err != nil {
-		logger.Error(err)
+func ServeWs(hub *Hub, c echo.Context) error {
+	w := c.Response()
+	r := c.Request()
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
 		return err
 	}
+	client := &Client{ip: c.RealIP(), hub: hub, conn: conn, send: make(chan []byte, 256)}
+	log.Warnln("checking ip", client.ip)
+	if _, ok := hub.ips[client.ip]; ok {
+		log.Warnln("bouncing ip...", client.ip)
+		return nil
+	}
+	client.hub.register <- client
 
-	u1 := os.Getenv("RESTREAM_CHAT_ENDPOINT")
-	u2 := os.Getenv("RESTREAM_UPDATES_ENDPOINT")
-
-	go Connect(u1, dumpChannel)
-	go Connect(u2, dumpChannel)
+	go client.writePump()
+	go client.readPump()
 
 	return nil
 }

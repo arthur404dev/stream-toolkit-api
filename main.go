@@ -5,7 +5,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/arthur404dev/404-api/restream"
 	"github.com/arthur404dev/404-api/server"
+	"github.com/arthur404dev/404-api/websocket"
 	"github.com/joho/godotenv"
 )
 
@@ -28,6 +30,9 @@ func init() {
 }
 
 func main() {
+	hub := websocket.NewHub()
+	go hub.Run()
+	go restream.Refresher()
 	p := os.Getenv("PORT")
-	server.Start(p)
+	server.Start(p, hub)
 }
