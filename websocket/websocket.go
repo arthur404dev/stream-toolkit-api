@@ -23,10 +23,6 @@ func ServeWs(hub *Hub, c echo.Context) error {
 	logger.Debugln("connection upgraded")
 	logger.WithField("client-ip", c.RealIP()).Infoln("creating client")
 	client := &Client{ip: c.RealIP(), hub: hub, conn: conn, send: make(chan []byte, 256)}
-	if _, ok := hub.ips[client.ip]; ok {
-		log.WithField("client-ip", client.ip).Warnln("bouncing ip...")
-		return nil
-	}
 	logger.Debugln("registering client")
 	client.hub.register <- client
 	logger.Infoln("write/read pumps started")
