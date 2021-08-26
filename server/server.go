@@ -19,7 +19,6 @@ func Start(port string, hub *websocket.Hub) {
 		AllowMethods: []string{http.MethodGet, http.MethodConnect, http.MethodPost},
 	}))
 	e.Use(loggingMiddleware)
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(1)))
 
 	e.GET("/", statusPage)
 	e.GET("/ws", func(c echo.Context) error { return websocket.ServeWs(hub, c) })
