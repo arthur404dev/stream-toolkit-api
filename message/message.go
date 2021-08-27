@@ -24,6 +24,14 @@ func Parse(raw []byte) (Message, error) {
 				return parsedMsg, err
 			}
 			parsedMsg.Type = "chat"
+			if parsedMsg.Payload.EventPayload.Author.Avatar == "" {
+				if parsedMsg.Payload.EventPayload.Author.AvatarUrl != "" {
+					parsedMsg.Payload.EventPayload.Author.Avatar = parsedMsg.Payload.EventPayload.Author.AvatarUrl
+				}
+				if parsedMsg.Payload.EventPayload.Author.Picture != "" {
+					parsedMsg.Payload.EventPayload.Author.Avatar = parsedMsg.Payload.EventPayload.Author.Picture
+				}
+			}
 		}
 	case "updateStatuses":
 		{

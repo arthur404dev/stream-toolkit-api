@@ -13,17 +13,19 @@ type Message struct {
 }
 
 type ChatPayload struct {
-	ConnectionIdentifier string        `json:"connectionIdentifier"`
-	EventIdentifier      string        `json:"eventIdentifier"`
-	EventPayload         TwitchPayload `json:"eventPayload"`
-	EventSourceId        int           `json:"eventSourceId"`
-	EventTypeId          int           `json:"eventTypeId"`
-	UserId               int           `json:"userId"`
+	ConnectionIdentifier string             `json:"connectionIdentifier"`
+	EventIdentifier      string             `json:"eventIdentifier"`
+	EventPayload         ChatMessagePayload `json:"eventPayload"`
+	EventSourceId        int                `json:"eventSourceId"`
+	EventTypeId          int                `json:"eventTypeId"`
+	UserId               int                `json:"userId"`
 }
 
-type TwitchPayload struct {
+type ChatMessagePayload struct {
 	Author struct {
 		Avatar        string `json:"avatar"`
+		AvatarUrl     string `json:"avatarUrl"`
+		Picture       string `json:"picture"`
 		Color         string `json:"color"`
 		DisplayName   string `json:"displayName"`
 		Id            string `json:"id"`
