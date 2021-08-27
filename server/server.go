@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,12 @@ func Start(port string, hub *websocket.Hub) {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodConnect, http.MethodPost},
+	}))
+	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup: "query:api-key",
+		Validator: func(key string, c echo.Context) (bool, error) {
+			return key == os.Getenv("ACCESS_API_KEY"), nil
+		},
 	}))
 	e.Use(loggingMiddleware)
 
