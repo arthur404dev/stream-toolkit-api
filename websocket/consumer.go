@@ -1,12 +1,40 @@
 package websocket
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/arthur404dev/404-api/restream"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
+
+type Consumers struct {
+	urls []string
+	quit chan bool
+	hub  *Hub
+}
+
+func NewConsumers(h *Hub) *Consumers {
+	return &Consumers{
+		urls: strings.Split(os.Getenv("SOCKET_ENDPOINTS"), ","),
+		quit: make(chan bool),
+		hub:  h,
+	}
+}
+
+func (c *Consumers) Run() {
+	for _, url := range c.urls {
+		go consume(url, &c.hub.broadcast, &c.quit)
+	}
+}
+
+func (c *Consumers) Down() {
+	for range c.urls {
+		c.quit <- true
+	}
+}
 
 func consume(url string, tc *chan []byte, quit *chan bool) {
 	logger := log.WithFields(log.Fields{"source": "websocket.consume()", "url": url})

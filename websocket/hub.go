@@ -1,9 +1,9 @@
 package websocket
 
 import (
-	"os"
-	"strings"
+	"time"
 
+	"github.com/arthur404dev/404-api/restream"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,18 +28,33 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	logger := log.WithFields(log.Fields{"source": "Hub.Run()", "hub": h})
 	logger.Debugln("hub service started")
-	urls := strings.Split(os.Getenv("SOCKET_ENDPOINTS"), ",")
-	quit := make(chan bool)
+	consumers := NewConsumers(h)
+	ttr := 30 * time.Minute
+	if err := restream.RefreshTokens(ttr); err != nil {
+		logger.Error(err)
+		return
+	}
 	logger.Debugln("hub watcher started")
+	ticker := time.NewTicker(ttr)
+	defer ticker.Stop()
 	for {
 		select {
+		case <-ticker.C:
+			logger.WithField("tick", time.Now().Unix()).Debugln("refreshing tokens")
+			if err := restream.RefreshTokens(ttr); err != nil {
+				logger.Error(err)
+				return
+			}
+			if len(h.clients) > 0 {
+				logger.Debugln("refreshing consumers")
+				consumers.Down()
+				consumers.Run()
+			}
 		case client := <-h.register:
 			logger.WithField("client-ip", client.ip).Debugln("registering client")
 			if len(h.clients) == 0 {
 				logger.Warnln("no clients found, launching consumers")
-				for _, url := range urls {
-					go consume(url, &h.broadcast, &quit)
-				}
+				consumers.Run()
 			}
 			h.clients[client] = true
 			h.ips[client.ip] = true
@@ -53,9 +68,7 @@ func (h *Hub) Run() {
 			}
 			if len(h.clients) == 0 {
 				logger.Warnln("no more clients online, shutting down consumers")
-				for range urls {
-					quit <- true
-				}
+				consumers.Down()
 			}
 		case message := <-h.broadcast:
 			logger.WithField("message", string(message)).Debugln("broadcasting message")

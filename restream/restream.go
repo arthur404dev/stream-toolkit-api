@@ -50,7 +50,7 @@ func ExchangeTokens(c echo.Context) error {
 	return c.JSON(http.StatusOK, msg)
 }
 
-func RefreshTokens() error {
+func RefreshTokens(ttr time.Duration) error {
 	logger := log.WithFields(log.Fields{"source": "restream.RefreshTokens()"})
 	logger.Debugln("token refresh started")
 	tokens, err := getTokens()
@@ -70,11 +70,12 @@ func RefreshTokens() error {
 		logger.Errorln(err)
 		return err
 	}
-	if eat.Sub(time.Now()) > 0*time.Second {
-		logger.Printf("Access Token is still valid")
+	if time.Until(eat) > ttr {
+		logger.Printf("Access Token is still valid at next ttr")
 		return nil
 	}
-	if ert.Sub(time.Now()) <= 0*time.Second {
+
+	if time.Until(ert) <= 0*time.Second {
 		logger.Fatalf("Refresh Token is expired")
 		return errors.New("The received refresh token is already expired")
 	}
@@ -104,28 +105,8 @@ func GetAccessToken() (string, error) {
 	}
 	if tokens.AccessToken == "" {
 		logger.Errorln("received access token is empty")
-		return "", errors.New("The Access Token received is blank")
+		return "", errors.New("he Access Token received is blank")
 	}
 	logger.Debugln("token get finished")
 	return tokens.AccessToken, nil
-}
-
-func Refresher() {
-	logger := log.WithFields(log.Fields{"source": "restream.Refresher()"})
-	logger.Infoln("refresher started...")
-	if err := RefreshTokens(); err != nil {
-		logger.Error(err)
-		return
-	}
-	ticker := time.NewTicker(50 * time.Minute)
-	for {
-		select {
-		case <-ticker.C:
-			logger.Infoln("refresher triggering automatic refresh...")
-			if err := RefreshTokens(); err != nil {
-				logger.Error(err)
-				return
-			}
-		}
-	}
 }
