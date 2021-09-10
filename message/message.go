@@ -33,6 +33,22 @@ func Parse(raw []byte) (Message, error) {
 				}
 			}
 		}
+	case "upsert":
+		{
+			if err := json.Unmarshal(raw, &parsedMsg); err != nil {
+				logger.Errorln(err)
+				return parsedMsg, err
+			}
+			parsedMsg.Type = "upsert"
+		}
+	case "delete":
+		{
+			if err := json.Unmarshal(raw, &parsedMsg); err != nil {
+				logger.Errorln(err)
+				return parsedMsg, err
+			}
+			parsedMsg.Type = "delete"
+		}
 	case "updateStatuses":
 		{
 			stats := Stats{}

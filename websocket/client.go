@@ -3,7 +3,7 @@ package websocket
 import (
 	"time"
 
-	"github.com/arthur404dev/404-api/message"
+	"github.com/arthur404dev/api/message"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/websocket"
@@ -36,18 +36,18 @@ func (c *Client) readPump() {
 		c.conn.Close()
 	}()
 	logger.Debugln("setting reader options")
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	// c.conn.SetReadLimit(maxMessageSize)
+	// c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	// c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Errorln(err)
 			}
 			break
 		}
-		logger.WithField("message", message).Debugln("received message from client")
+		c.hub.broadcast <- msg
 	}
 }
 
@@ -62,7 +62,7 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case msg, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			// c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -77,10 +77,10 @@ func (c *Client) writePump() {
 				c.conn.WriteJSON(message)
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
+			// c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			// if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			// 	return
+			// }
 		}
 	}
 }

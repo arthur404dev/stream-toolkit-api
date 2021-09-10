@@ -7,8 +7,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/arthur404dev/404-api/restream"
-	"github.com/arthur404dev/404-api/websocket"
+	"github.com/arthur404dev/api/restream"
+	"github.com/arthur404dev/api/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )

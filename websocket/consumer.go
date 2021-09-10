@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arthur404dev/404-api/restream"
+	"github.com/arthur404dev/api/restream"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -46,7 +46,7 @@ func consume(url string, tc *chan []byte, quit *chan bool) {
 	logger.Debugln("building options")
 
 	u := url + "/ws?accessToken=" + accessToken
-	logger.Infoln("connecting to %s", u)
+	logger.Infof("connecting to %s\n", u)
 
 	c, _, err := websocket.DefaultDialer.Dial(u, nil)
 	if err != nil {

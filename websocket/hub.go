@@ -3,7 +3,7 @@ package websocket
 import (
 	"time"
 
-	"github.com/arthur404dev/404-api/restream"
+	"github.com/arthur404dev/api/restream"
 	log "github.com/sirupsen/logrus"
 )
 

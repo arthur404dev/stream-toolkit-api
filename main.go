@@ -5,8 +5,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/arthur404dev/404-api/server"
-	"github.com/arthur404dev/404-api/websocket"
+	"github.com/arthur404dev/api/server"
+	"github.com/arthur404dev/api/websocket"
 	"github.com/joho/godotenv"
 )
 
@@ -33,4 +33,5 @@ func main() {
 	go hub.Run()
 	p := os.Getenv("PORT")
 	server.Start(p, hub)
+
 }
