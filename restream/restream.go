@@ -79,7 +79,6 @@ func RefreshTokens(ttr time.Duration) error {
 		logger.Fatalf("Refresh Token is expired")
 		return errors.New("The received refresh token is already expired")
 	}
-	logger.Printf("2 - Entering requestTokens with refreshToken=%+v\n", tokens.RefreshToken)
 	tr, err := requestTokens(tokens.RefreshToken, "refresh_token")
 	if err != nil {
 		logger.Fatalf("RefreshTokens.requestTokens error=%+v\n", err)

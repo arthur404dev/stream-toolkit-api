@@ -23,6 +23,7 @@ func Parse(raw []byte) (Message, error) {
 				logger.Errorln(err)
 				return parsedMsg, err
 			}
+			logger.Infof("%+v\n", parsedMsg)
 			parsedMsg.Type = "chat"
 			if parsedMsg.Payload.EventPayload.Author.Avatar == "" {
 				if parsedMsg.Payload.EventPayload.Author.AvatarUrl != "" {

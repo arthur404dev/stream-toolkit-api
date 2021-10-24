@@ -21,7 +21,7 @@ func storeTokens(t *TokenResponse) (string, error) {
 	logger.Debugln("token store started")
 	if t.AccessToken == "" {
 		logger.Errorln("no data was received from TokenResponse")
-		return "", errors.New("No Data was received inside of TokenResponse")
+		return "", errors.New("no data was received inside of TokenResponse")
 	}
 	clientOptions := options.Client().
 		ApplyURI(os.Getenv("MONGO_CREDENTIALS"))

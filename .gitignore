@@ -19,3 +19,5 @@
 .air.toml
 tmp
 socket.html
+*.mongodb
+.vscode

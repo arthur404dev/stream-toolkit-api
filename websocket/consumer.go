@@ -51,6 +51,7 @@ func consume(url string, tc *chan []byte, quit *chan bool) {
 	c, _, err := websocket.DefaultDialer.Dial(u, nil)
 	if err != nil {
 		logger.Error(err)
+		return
 	}
 	defer c.Close()
 	done := make(chan struct{})

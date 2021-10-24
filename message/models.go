@@ -30,7 +30,7 @@ type ChatMessagePayload struct {
 		DisplayName   string `json:"displayName,omitempty"`
 		Id            string `json:"id,omitempty"`
 		Name          string `json:"name,omitempty"`
-		SubscribedFor string `json:"number,omitempty"`
+		SubscribedFor int    `json:"subscribedFor,omitempty"`
 		Badges        []struct {
 			Title    string `json:"title,omitempty"`
 			ImageUrl string `json:"imageUrl,omitempty"`

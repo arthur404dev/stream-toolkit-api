@@ -33,5 +33,4 @@ func main() {
 	go hub.Run()
 	p := os.Getenv("PORT")
 	server.Start(p, hub)
-
 }
